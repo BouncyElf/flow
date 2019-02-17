@@ -21,15 +21,15 @@ func TestConcurrent(t *testing.T) {
 
 func TestOrder(t *testing.T) {
 	data := make([]int, 0, 20)
-	New().With(
+	New().Next(
 		func() {
 			data = append(data, 1)
 		},
-	).With(
+	).Next(
 		func() {
 			data = append(data, 2)
 		},
-	).With(
+	).Next(
 		func() {
 			data = append(data, 3)
 		},

@@ -56,13 +56,20 @@ func New() *Flow {
 }
 
 func (f *Flow) With(jobs ...func()) *Flow {
-	n := getNode()
-	if len(jobs) != 0 {
-		for i := 0; i < len(jobs); i++ {
-			n.jobs = append(n.jobs, job(jobs[i]))
-		}
+	if len(f.nodes) == 0 {
+		f.nodes = append(f.nodes, getNode())
 	}
-	f.nodes = append(f.nodes, n)
+	n := f.nodes[len(f.nodes)-1]
+	for i := 0; i < len(jobs); i++ {
+		n.jobs = append(n.jobs, job(jobs[i]))
+	}
+	f.nodes[len(f.nodes)-1] = n
+	return f
+}
+
+func (f *Flow) Next(jobs ...func()) *Flow {
+	f.nodes = append(f.nodes, getNode())
+	f.With(jobs...)
 	return f
 }
 
