@@ -50,3 +50,23 @@ func TestPanic(t *testing.T) {
 		},
 	).Run()
 }
+
+func TestForRangeIssue(t *testing.T) {
+	f, a := New(), 0
+	for i := 0; i < 10; i++ {
+		f.Next(func() {
+			a += i
+		})
+	}
+	f.Run()
+	assert.Equal(t, 100, a)
+	f, a = New(), 0
+	for i := 0; i < 10; i++ {
+		v := i
+		f.Next(func() {
+			a += v
+		})
+	}
+	f.Run()
+	assert.Equal(t, 45, a)
+}
