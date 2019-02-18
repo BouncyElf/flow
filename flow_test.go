@@ -70,3 +70,37 @@ func TestForRangeIssue(t *testing.T) {
 	f.Run()
 	assert.Equal(t, 45, a)
 }
+
+func TestLimit(t *testing.T) {
+	f := New().Limit(4)
+	for i := 0; i < 20; i++ {
+		f.With(func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}).Next(func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		}, func() {
+			assert.True(t, len(f.current) < 5)
+		})
+	}
+	f.Run()
+}

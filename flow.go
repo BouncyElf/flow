@@ -28,11 +28,17 @@ func (n *node) reset() *node {
 type Flow struct {
 	nodes        []*node
 	panicHandler func(interface{})
+
+	// concurrent limit number
+	limit   int
+	current chan struct{}
 }
 
 func (f *Flow) reset() *Flow {
 	f.nodes = nil
 	f.panicHandler = nil
+	f.limit = 0
+	f.current = nil
 	return f
 }
 
@@ -83,6 +89,16 @@ func (f *Flow) OnPanic(panicHandler func(interface{})) *Flow {
 	return f
 }
 
+// Limit limit the number of concurrent goroutines
+func (f *Flow) Limit(number int) *Flow {
+	if number <= 0 {
+		return f
+	}
+	f.limit = number
+	f.current = make(chan struct{}, number)
+	return f
+}
+
 // Run execute these funcs
 func (f *Flow) Run() {
 	panicHandler := defaultPanicHandler
@@ -92,11 +108,17 @@ func (f *Flow) Run() {
 	wg := new(sync.WaitGroup)
 	for i := 0; i < len(f.nodes); i++ {
 		for j := 0; j < len(f.nodes[i].jobs); j++ {
+			if f.limit != 0 {
+				f.current <- struct{}{}
+			}
 			wg.Add(1)
 			go func(i, j int) {
 				defer func() {
 					if msg := recover(); msg != nil {
 						panicHandler(msg)
+					}
+					if f.limit != 0 {
+						<-f.current
 					}
 					wg.Done()
 				}()
