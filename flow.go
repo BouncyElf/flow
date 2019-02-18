@@ -24,15 +24,14 @@ func (n *node) reset() *node {
 	return n
 }
 
+// Flow is a sync model
 type Flow struct {
 	nodes        []*node
-	errorHandler func(error)
 	panicHandler func(interface{})
 }
 
 func (f *Flow) reset() *Flow {
 	f.nodes = nil
-	f.errorHandler = nil
 	f.panicHandler = nil
 	return f
 }
@@ -51,10 +50,13 @@ func init() {
 	}
 }
 
+// New returns a flow instance
 func New() *Flow {
 	return getFlow()
 }
 
+// With add funcs in this level
+// With: run f1, run f2, run f3 ... (random execute order)
 func (f *Flow) With(jobs ...func()) *Flow {
 	if len(f.nodes) == 0 {
 		f.nodes = append(f.nodes, getNode())
@@ -67,22 +69,21 @@ func (f *Flow) With(jobs ...func()) *Flow {
 	return f
 }
 
+// Next add funcs in next level
+// Next: wait level1(run f1, run f2, run f3...) ... wait level2(...)... (in order)
 func (f *Flow) Next(jobs ...func()) *Flow {
 	f.nodes = append(f.nodes, getNode())
 	f.With(jobs...)
 	return f
 }
 
-func (f *Flow) OnError(errorHandler func(error)) *Flow {
-	f.errorHandler = errorHandler
-	return f
-}
-
+// OnPanic set panicHandler
 func (f *Flow) OnPanic(panicHandler func(interface{})) *Flow {
 	f.panicHandler = panicHandler
 	return f
 }
 
+// Run execute these funcs
 func (f *Flow) Run() {
 	panicHandler := defaultPanicHandler
 	if f.panicHandler != nil {
