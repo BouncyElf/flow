@@ -60,6 +60,7 @@ func TestForRangeIssue(t *testing.T) {
 	}
 	f.Run()
 	assert.Equal(t, 100, a)
+
 	f, a = New(), 0
 	for i := 0; i < 10; i++ {
 		v := i
@@ -89,18 +90,8 @@ func TestLimit(t *testing.T) {
 		}, func() {
 			assert.True(t, len(f.current) < 5)
 		}).Next(func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		})
+			assert.True(t, len(f.current) == 1)
+		}).Next()
 	}
 	f.Run()
 }
