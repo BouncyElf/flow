@@ -71,7 +71,6 @@ func (f *Flow) With(jobs ...func()) *Flow {
 	for i := 0; i < len(jobs); i++ {
 		n.jobs = append(n.jobs, job(jobs[i]))
 	}
-	f.nodes[len(f.nodes)-1] = n
 	return f
 }
 
