@@ -1,22 +1,21 @@
 package flow
 
 import (
-	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConcurrent(t *testing.T) {
-	New().With(
-		func() {
-			fmt.Println(1)
-		}, func() {
-			fmt.Println(2)
-		}, func() {
-			fmt.Println(3)
-		},
-	).Run()
+	f, a := New(), 0
+	for i := 0; i < 10000; i++ {
+		f.With(func() {
+			a += 1
+		})
+	}
+	f.Run()
+	assert.True(t, a < 10000)
 }
 
 func TestOrder(t *testing.T) {
@@ -38,6 +37,7 @@ func TestOrder(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
+	counter, mu := 0, new(sync.Mutex)
 	New().With(
 		func() {
 			panic("i")
@@ -48,7 +48,12 @@ func TestPanic(t *testing.T) {
 		}, func() {
 			panic("panic")
 		},
-	).Run()
+	).OnPanic(func(interface{}) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		counter++
+	}).Run()
 }
 
 func TestForRangeIssue(t *testing.T) {
@@ -59,7 +64,7 @@ func TestForRangeIssue(t *testing.T) {
 		})
 	}
 	f.Run()
-	assert.Equal(t, 100, a)
+	assert.True(t, a > 45)
 
 	f, a = New(), 0
 	for i := 0; i < 10; i++ {
