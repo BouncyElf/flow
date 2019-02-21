@@ -1,11 +1,46 @@
 package flow
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestExample(t *testing.T) {
+	f, counter := New(), 0
+	showLevel := func() {
+		counter++
+		fmt.Println("level", counter)
+	}
+	// Next start a new level, and put the func `showLevel` in this level
+	// the first level will be created by Flow
+	// so you can also use With to add showLevel in the first level
+	// f.With(showLevel)
+	f.Next(showLevel)
+	for i := 0; i < 20; i++ {
+		v := i
+		// With add func in this level
+		f.With(func() {
+			// do some stuff
+			fmt.Println(v)
+		})
+	}
+	// start a new level
+	f.Next(showLevel)
+	for i := 0; i < 20; i++ {
+		v := i
+		f.With(func() {
+			// do some stuff
+			fmt.Println(v)
+		})
+	}
+	// limit the number of concurrent jobs
+	f.Limit(10)
+	// wait and add counter
+	f.Run()
+}
 
 func TestConcurrent(t *testing.T) {
 	f, a := New(), 0
