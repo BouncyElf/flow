@@ -8,6 +8,9 @@ import (
 type job func()
 
 func (j job) run() {
+	if j == nil {
+		return
+	}
 	j()
 }
 
@@ -16,7 +19,7 @@ type node struct {
 }
 
 var defaultPanicHandler = func(msg interface{}) {
-	fmt.Printf("%s panic with: %v\n", "flow", msg)
+	fmt.Printf("%s panic: %v\n", "flow", msg)
 }
 
 func (n *node) reset() *node {
@@ -32,9 +35,12 @@ type Flow struct {
 	// concurrent limit number
 	limit   int
 	current chan struct{}
+
+	isNew bool
 }
 
 func (f *Flow) reset() *Flow {
+	f.isNew = true
 	f.nodes = f.nodes[:0]
 	f.panicHandler = nil
 	f.limit = 0
@@ -100,6 +106,10 @@ func (f *Flow) Limit(number int) *Flow {
 
 // Run execute these funcs
 func (f *Flow) Run() {
+	if f == nil || !f.isNew {
+		fmt.Printf("%s error: %s\n", "flow", "invalid flow")
+		return
+	}
 	panicHandler := defaultPanicHandler
 	if f.panicHandler != nil {
 		panicHandler = f.panicHandler
@@ -107,7 +117,7 @@ func (f *Flow) Run() {
 	wg := new(sync.WaitGroup)
 	for i := 0; i < len(f.nodes); i++ {
 		for j := 0; j < len(f.nodes[i].jobs); j++ {
-			if f.limit != 0 {
+			if f.limit > 0 {
 				f.current <- struct{}{}
 			}
 			wg.Add(1)
@@ -116,7 +126,7 @@ func (f *Flow) Run() {
 					if msg := recover(); msg != nil {
 						panicHandler(msg)
 					}
-					if f.limit != 0 {
+					if f.limit > 0 {
 						<-f.current
 					}
 					wg.Done()
@@ -128,6 +138,7 @@ func (f *Flow) Run() {
 		wg.Wait()
 	}
 	flowPool.Put(f)
+	f.isNew = false
 }
 
 func getNode() *node {
