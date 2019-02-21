@@ -42,6 +42,10 @@ func TestExample(t *testing.T) {
 	f.Run()
 }
 
+func TestNilFunc(t *testing.T) {
+	New().With(nil).Next(nil).Run()
+}
+
 func TestConcurrent(t *testing.T) {
 	f, a := New(), 0
 	for i := 0; i < 10000; i++ {
