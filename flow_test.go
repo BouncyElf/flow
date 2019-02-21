@@ -93,6 +93,7 @@ func TestPanic(t *testing.T) {
 
 		counter++
 	}).Run()
+	assert.Equal(t, 4, counter)
 }
 
 func TestForRangeIssue(t *testing.T) {
