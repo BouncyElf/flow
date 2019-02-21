@@ -35,7 +35,7 @@ type Flow struct {
 }
 
 func (f *Flow) reset() *Flow {
-	f.nodes = nil
+	f.nodes = f.nodes[:0]
 	f.panicHandler = nil
 	f.limit = 0
 	f.current = nil
