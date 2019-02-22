@@ -9,18 +9,14 @@ import (
 var SilentMode = false
 
 var defaultPanicHandler = func(msg interface{}) {
-	if !SilentMode {
-		fmt.Printf("%s panic: %v\n", "flow", msg)
-	}
+	say(msg, "panic")
 }
 
 type job func()
 
 func (j job) run() {
 	if j == nil {
-		if !SilentMode {
-			fmt.Printf("%s error: %s\n", "flow", "nil job")
-		}
+		say("nil job", "error")
 		return
 	}
 	j()
@@ -115,9 +111,7 @@ func (f *Flow) Limit(number int) *Flow {
 // Run execute these funcs
 func (f *Flow) Run() {
 	if f == nil || !f.isNew {
-		if !SilentMode {
-			fmt.Printf("%s error: %s\n", "flow", "invalid flow")
-		}
+		say("invalid flow", "error")
 		return
 	}
 	panicHandler := defaultPanicHandler
@@ -149,6 +143,12 @@ func (f *Flow) Run() {
 	}
 	flowPool.Put(f)
 	f.isNew = false
+}
+
+func say(msg interface{}, level string) {
+	if !SilentMode {
+		fmt.Printf("%s %s: %v\n", "flow", level, msg)
+	}
 }
 
 func getNode() *node {
