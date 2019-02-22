@@ -5,10 +5,22 @@ import (
 	"sync"
 )
 
+// SilentMode disable all error message
+var SilentMode = false
+
+var defaultPanicHandler = func(msg interface{}) {
+	if !SilentMode {
+		fmt.Printf("%s panic: %v\n", "flow", msg)
+	}
+}
+
 type job func()
 
 func (j job) run() {
 	if j == nil {
+		if !SilentMode {
+			fmt.Printf("%s error: %s\n", "flow", "nil job")
+		}
 		return
 	}
 	j()
@@ -16,10 +28,6 @@ func (j job) run() {
 
 type node struct {
 	jobs []job
-}
-
-var defaultPanicHandler = func(msg interface{}) {
-	fmt.Printf("%s panic: %v\n", "flow", msg)
 }
 
 func (n *node) reset() *node {
@@ -107,7 +115,9 @@ func (f *Flow) Limit(number int) *Flow {
 // Run execute these funcs
 func (f *Flow) Run() {
 	if f == nil || !f.isNew {
-		fmt.Printf("%s error: %s\n", "flow", "invalid flow")
+		if !SilentMode {
+			fmt.Printf("%s error: %s\n", "flow", "invalid flow")
+		}
 		return
 	}
 	panicHandler := defaultPanicHandler

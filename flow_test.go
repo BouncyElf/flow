@@ -140,3 +140,13 @@ func TestLimit(t *testing.T) {
 	}
 	f.Run()
 }
+
+func TestSilentMode(t *testing.T) {
+	New().With(func() {
+		panic("u can see me")
+	}).Run()
+	SilentMode = true
+	New().With(func() {
+		panic("u can not see me")
+	}).Run()
+}
