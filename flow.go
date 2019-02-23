@@ -146,9 +146,10 @@ func (f *Flow) Run() {
 }
 
 func say(msg interface{}, level string) {
-	if !SilentMode {
-		fmt.Printf("%s %s: %v\n", "flow", level, msg)
+	if SilentMode {
+		return
 	}
+	fmt.Printf("%s %s: %v\n", "flow", level, msg)
 }
 
 func getNode() *node {
