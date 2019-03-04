@@ -151,3 +151,52 @@ func TestSilentMode(t *testing.T) {
 		panic("u can not see me")
 	}).Run()
 }
+
+func TestGlobalLimit(t *testing.T) {
+	Limit(4)
+	job1 := New()
+	for i := 0; i < 20; i++ {
+		job1.With(func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}).Next(func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}).Next()
+	}
+	job2 := New().Limit(2)
+	for i := 0; i < 20; i++ {
+		job2.With(func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(globalCurrent) <= 4)
+		}, func() {
+			assert.True(t, len(job2.current) <= 2)
+		}).Next(func() {
+			assert.True(t, len(job2.current) == 1)
+		}).Next()
+	}
+	New().With(func() {
+		job1.Run()
+	}, func() {
+		job2.Run()
+	}).Run()
+}

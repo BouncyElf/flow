@@ -8,6 +8,11 @@ import (
 // SilentMode disable all error message
 var SilentMode = false
 
+// globalLimit limit all flow's concurrent work number.
+// <= 0 means no limits.
+var globalLimit = 0
+var globalCurrent chan struct{}
+
 var defaultPanicHandler = func(msg interface{}) {
 	say(msg, "panic")
 }
@@ -71,6 +76,20 @@ func New() *Flow {
 	return getFlow()
 }
 
+// Limit limit all flow's concurrent goroutines number
+func Limit(number int) {
+	if globalCurrent != nil {
+		say("limit can only set once", "error")
+		return
+	}
+	if number <= 0 {
+		say("invalid limit number", "error")
+		return
+	}
+	globalLimit = number
+	globalCurrent = make(chan struct{}, globalLimit)
+}
+
 // With add funcs in this level
 // With: run f1, run f2, run f3 ... (random execute order)
 func (f *Flow) With(jobs ...func()) *Flow {
@@ -98,9 +117,10 @@ func (f *Flow) OnPanic(panicHandler func(interface{})) *Flow {
 	return f
 }
 
-// Limit limit the number of concurrent goroutines
+// Limit limit the flow's concurrent goroutines number
 func (f *Flow) Limit(number int) *Flow {
 	if number <= 0 {
+		say("invalid limit number", "error")
 		return f
 	}
 	f.limit = number
@@ -121,6 +141,9 @@ func (f *Flow) Run() {
 	wg := new(sync.WaitGroup)
 	for i := 0; i < len(f.nodes); i++ {
 		for j := 0; j < len(f.nodes[i].jobs); j++ {
+			if globalLimit > 0 {
+				globalCurrent <- struct{}{}
+			}
 			if f.limit > 0 {
 				f.current <- struct{}{}
 			}
@@ -132,6 +155,9 @@ func (f *Flow) Run() {
 					}
 					if f.limit > 0 {
 						<-f.current
+					}
+					if globalLimit > 0 {
+						<-globalCurrent
 					}
 					wg.Done()
 				}()
