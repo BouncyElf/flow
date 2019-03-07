@@ -43,10 +43,12 @@ func TestExample(t *testing.T) {
 }
 
 func TestNilFunc(t *testing.T) {
+	reset()
 	New().With(nil).Next(nil).Run()
 }
 
 func TestConcurrent(t *testing.T) {
+	reset()
 	f, a := New(), 0
 	for i := 0; i < 10000; i++ {
 		f.With(func() {
@@ -58,6 +60,7 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestOrder(t *testing.T) {
+	reset()
 	data := make([]int, 0, 20)
 	New().Next(
 		func() {
@@ -76,6 +79,7 @@ func TestOrder(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
+	reset()
 	counter, mu := 0, new(sync.Mutex)
 	New().With(
 		func() {
@@ -97,6 +101,7 @@ func TestPanic(t *testing.T) {
 }
 
 func TestForRangeIssue(t *testing.T) {
+	reset()
 	f, a := New(), 0
 	for i := 0; i < 10; i++ {
 		f.Next(func() {
@@ -118,6 +123,7 @@ func TestForRangeIssue(t *testing.T) {
 }
 
 func TestLimit(t *testing.T) {
+	reset()
 	f := New().Limit(4)
 	for i := 0; i < 20; i++ {
 		f.With(func() {
@@ -142,6 +148,7 @@ func TestLimit(t *testing.T) {
 }
 
 func TestSilentMode(t *testing.T) {
+	reset()
 	New().With(func() {
 		panic("u can see me")
 	}).Run()
@@ -153,6 +160,7 @@ func TestSilentMode(t *testing.T) {
 }
 
 func TestGlobalLimit(t *testing.T) {
+	reset()
 	Limit(4)
 	job1 := New()
 	for i := 0; i < 20; i++ {
@@ -199,4 +207,13 @@ func TestGlobalLimit(t *testing.T) {
 	}, func() {
 		job2.Run()
 	}).Run()
+}
+
+func reset() {
+	SilentMode = false
+	globalLimit = 0
+	globalCurrent = nil
+	defaultPanicHandler = func(msg interface{}) {
+		say(msg, "panic")
+	}
 }
