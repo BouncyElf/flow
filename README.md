@@ -13,18 +13,19 @@ import (
 
 func main() {
 	f, counter := flow.New(), 0
+	// declare a job
 	showLevel := func() {
 		counter++
 		fmt.Println("level", counter)
 	}
-	// Next start a new level, and put the func `showLevel` in this level
+	// Next start a new level, and put the job `showLevel` in this level
 	// the first level will be created by Flow
 	// so you can also use With to add showLevel in the first level
 	// f.With(showLevel)
 	f.Next(showLevel)
 	for i := 0; i < 20; i++ {
 		v := i
-		// With add func in this level
+		// With add job in this level
 		f.With(func() {
 			// do some stuff
 			fmt.Println(v)
@@ -41,7 +42,7 @@ func main() {
 	}
 	// limit the number of concurrent jobs
 	f.Limit(10)
-	// wait and add counter
+	// wait and execute job
 	f.Run()
 }
 ```
