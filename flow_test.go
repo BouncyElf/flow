@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExample(t *testing.T) {
+func Example() {
 	f, counter := New(), 0
 	showLevel := func() {
 		counter++
@@ -40,11 +40,71 @@ func TestExample(t *testing.T) {
 	f.Limit(10)
 	// wait and add counter
 	f.Run()
+	// Unordered output:
+	// 0
+	// 1
+	// 2
+	// 3
+	// 4
+	// 5
+	// 6
+	// 7
+	// 8
+	// 9
+	// 10
+	// 11
+	// 12
+	// 13
+	// 14
+	// 15
+	// 16
+	// 17
+	// 18
+	// 19
+	// 0
+	// 1
+	// 2
+	// 3
+	// 4
+	// 5
+	// 6
+	// 7
+	// 8
+	// 9
+	// 10
+	// 11
+	// 12
+	// 13
+	// 14
+	// 15
+	// 16
+	// 17
+	// 18
+	// 19
+	// level 1
+	// level 2
 }
 
-func TestNilFunc(t *testing.T) {
+func Example_NilFunc() {
 	reset()
 	New().With(nil).Next(nil).Run()
+	// Output:
+	// flow error: nil job
+	// flow error: nil job
+}
+
+func Example_SilentMode() {
+	reset()
+	New().With(func() {
+		panic("u can see me")
+	}).Run()
+
+	SilentMode = true
+	New().With(func() {
+		panic("u can not see me")
+	}).Run()
+	// Output:
+	// flow panic: u can see me
 }
 
 func TestConcurrent(t *testing.T) {
@@ -145,18 +205,6 @@ func TestLimit(t *testing.T) {
 		}).Next()
 	}
 	f.Run()
-}
-
-func TestSilentMode(t *testing.T) {
-	reset()
-	New().With(func() {
-		panic("u can see me")
-	}).Run()
-
-	SilentMode = true
-	New().With(func() {
-		panic("u can not see me")
-	}).Run()
 }
 
 func TestGlobalLimit(t *testing.T) {
