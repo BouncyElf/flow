@@ -1,5 +1,12 @@
 # Flow
-🌊Flow is an easy-used synchronize model
+🌊Flow is an easy-used goroutine manage package.
+Flow aims to controll the concurrent number of goroutine and the execute order of multi goroutine.
+Flow have a global panichandler which can recover code from panic.
+
+# TODO
+- goroutine pool
+- job level panichandler
+- error handler
 
 # Example
 ```Go
