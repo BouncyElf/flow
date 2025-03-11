@@ -1,12 +1,7 @@
 # Flow
-🌊Flow is an easy-used goroutine manage package.
-Flow aims to controll the concurrent number of goroutine and the execute order of multi goroutine.
-Flow have a global panichandler which can recover code from panic.
-
-# TODO
-- goroutine pool
-- job level panichandler
-- error handler
+🌊Flow is an easy-used concurrent calculate model in Go.
+Flow can easily limit the maxium number of concurrent goroutine and can be very straight-forward to use.
+Basically, flow is a 2d matrix and it runs jobs row-by-row and all the jobs in same row will run concurrently.
 
 # Example
 ```Go

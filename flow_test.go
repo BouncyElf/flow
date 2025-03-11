@@ -37,7 +37,7 @@ func Example() {
 		})
 	}
 	// limit the number of concurrent jobs
-	f.Limit(10)
+	f.SetLimit(10)
 	// wait and add counter
 	f.Run()
 	// Unordered output:
@@ -85,36 +85,17 @@ func Example() {
 	// level 2
 }
 
-func Example_NilFunc() {
-	reset()
-	New().With(nil).Next(nil).Run()
-	// Output:
-	// flow error: nil job
-	// flow error: nil job
-}
-
-func Example_SilentMode() {
-	reset()
-	New().With(func() {
-		panic("u can see me")
-	}).Run()
-
-	SilentMode = true
-	New().With(func() {
-		panic("u can not see me")
-	}).Run()
-	// Output:
-	// flow panic: u can see me
-}
-
 func TestConcurrent(t *testing.T) {
 	reset()
 	f, a := New(), 0
+	f.SetLimit(10)
 	for i := 0; i < 10000; i++ {
 		f.With(func() {
 			a += 1
 		})
 	}
+	assert.Equal(t, len(f.jobs), 1)
+	assert.Equal(t, len(f.jobs[0]), 10000)
 	f.Run()
 	assert.True(t, a < 10000)
 }
@@ -182,85 +163,8 @@ func TestForRangeIssue(t *testing.T) {
 	assert.Equal(t, 45, a)
 }
 
-func TestLimit(t *testing.T) {
-	reset()
-	f := New().Limit(4)
-	for i := 0; i < 20; i++ {
-		f.With(func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}, func() {
-			assert.True(t, len(f.current) < 5)
-		}).Next(func() {
-			assert.True(t, len(f.current) == 1)
-		}).Next()
-	}
-	f.Run()
-}
-
-func TestGlobalLimit(t *testing.T) {
-	reset()
-	Limit(4)
-	job1 := New()
-	for i := 0; i < 20; i++ {
-		job1.With(func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}).Next(func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}).Next()
-	}
-	job2 := New().Limit(2)
-	for i := 0; i < 20; i++ {
-		job2.With(func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(globalCurrent) <= 4)
-		}, func() {
-			assert.True(t, len(job2.current) <= 2)
-		}).Next(func() {
-			assert.True(t, len(job2.current) == 1)
-		}).Next()
-	}
-	New().With(func() {
-		job1.Run()
-	}, func() {
-		job2.Run()
-	}).Run()
-}
-
 func reset() {
-	SilentMode = false
-	globalLimit = 0
-	globalCurrent = nil
+	Silent = false
 	defaultPanicHandler = func(msg interface{}) {
 		say(msg, "panic")
 	}

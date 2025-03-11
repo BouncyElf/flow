@@ -5,110 +5,97 @@ import (
 	"sync"
 )
 
-// SilentMode disable all error message
-var SilentMode = false
+// Silent disable all error message
+var Silent = false
 
 // globalLimit limit all flow's concurrent work number.
 // <= 0 means no limits.
-var globalLimit = 0
-var globalCurrent chan struct{}
-
 var defaultPanicHandler = func(msg interface{}) {
 	say(msg, "panic")
 }
 
-type job func()
-
-func (j job) run() {
-	if j == nil {
-		say("nil job", "error")
-		return
-	}
-	j()
-}
-
-type node struct {
-	jobs []job
-}
-
-func (n *node) reset() *node {
-	n.jobs = nil
-	return n
-}
-
 // Flow is a sync model
 type Flow struct {
-	nodes        []*node
+	jobs         [][]func()
 	panicHandler func(interface{})
 
 	// concurrent limit number
-	limit   int
-	current chan struct{}
+	limit int
 
-	isNew bool
-}
-
-func (f *Flow) reset() *Flow {
-	f.isNew = true
-	f.nodes = f.nodes[:0]
-	f.panicHandler = nil
-	f.limit = 0
-	f.current = nil
-	return f
-}
-
-var nodePool *sync.Pool
-var flowPool *sync.Pool
-
-func init() {
-	nodePool = new(sync.Pool)
-	nodePool.New = func() interface{} {
-		return newNode()
-	}
-	flowPool = new(sync.Pool)
-	flowPool.New = func() interface{} {
-		return newFlow()
-	}
+	runOnce *sync.Once
 }
 
 // New returns a flow instance
 func New() *Flow {
-	return getFlow()
+	return &Flow{
+		jobs:         [][]func(){},
+		panicHandler: defaultPanicHandler,
+		limit:        10,
+		runOnce:      new(sync.Once),
+	}
 }
 
-// Limit limit all flow's concurrent goroutines number
-func Limit(number int) {
-	if globalCurrent != nil {
-		say("limit can only set once", "error")
-		return
+// SetLimit set the max concurrent goroutines number
+func (f *Flow) SetLimit(limit int) {
+	if limit < 1 {
+		limit = 1
 	}
-	if number <= 0 {
-		say("invalid limit number", "error")
-		return
-	}
-	globalLimit = number
-	globalCurrent = make(chan struct{}, globalLimit)
+	f.limit = limit
 }
 
 // With add funcs in this level
 // With: run f1, run f2, run f3 ... (random execute order)
 func (f *Flow) With(jobs ...func()) *Flow {
-	if len(f.nodes) == 0 {
-		f.nodes = append(f.nodes, getNode())
+	if len(f.jobs) == 0 {
+		f.jobs = [][]func(){[]func(){}}
 	}
-	n := f.nodes[len(f.nodes)-1]
-	for i := 0; i < len(jobs); i++ {
-		n.jobs = append(n.jobs, job(jobs[i]))
-	}
+	n := len(f.jobs)
+	f.jobs[n-1] = append(f.jobs[n-1], jobs...)
 	return f
 }
 
 // Next add funcs in next level
 // Next: wait level1(run f1, run f2, run f3...) ... wait level2(...)... (in order)
 func (f *Flow) Next(jobs ...func()) *Flow {
-	f.nodes = append(f.nodes, getNode())
-	f.With(jobs...)
+	f.jobs = append(f.jobs, jobs)
 	return f
+}
+
+// Run execute these funcs
+func (f *Flow) Run() {
+	f.runOnce.Do(func() {
+		taskCh := make(chan func())
+		for range make([]any, f.limit) {
+			go func(taskCh chan func()) {
+				for job := range taskCh {
+					if job == nil {
+						taskCh <- nil
+						return
+					}
+					job()
+				}
+			}(taskCh)
+		}
+		for _, jobs := range f.jobs {
+			wg := new(sync.WaitGroup)
+			for _, job := range jobs {
+				j := job
+				wg.Add(1)
+				taskCh <- func() {
+					defer func() {
+						if msg := recover(); msg != nil {
+							f.panicHandler(msg)
+						}
+						wg.Done()
+					}()
+
+					j()
+				}
+			}
+			wg.Wait()
+		}
+		taskCh <- nil
+	})
 }
 
 // OnPanic set panicHandler
@@ -117,79 +104,9 @@ func (f *Flow) OnPanic(panicHandler func(interface{})) *Flow {
 	return f
 }
 
-// Limit limit the flow's concurrent goroutines number
-func (f *Flow) Limit(number int) *Flow {
-	if number <= 0 {
-		say("invalid limit number", "error")
-		return f
-	}
-	f.limit = number
-	f.current = make(chan struct{}, number)
-	return f
-}
-
-// Run execute these funcs
-func (f *Flow) Run() {
-	if f == nil || !f.isNew {
-		say("invalid flow", "error")
-		return
-	}
-	panicHandler := defaultPanicHandler
-	if f.panicHandler != nil {
-		panicHandler = f.panicHandler
-	}
-	wg := new(sync.WaitGroup)
-	for i := 0; i < len(f.nodes); i++ {
-		for j := 0; j < len(f.nodes[i].jobs); j++ {
-			if globalLimit > 0 {
-				globalCurrent <- struct{}{}
-			}
-			if f.limit > 0 {
-				f.current <- struct{}{}
-			}
-			wg.Add(1)
-			go func(i, j int) {
-				defer func() {
-					if msg := recover(); msg != nil {
-						panicHandler(msg)
-					}
-					if f.limit > 0 {
-						<-f.current
-					}
-					if globalLimit > 0 {
-						<-globalCurrent
-					}
-					wg.Done()
-				}()
-				f.nodes[i].jobs[j].run()
-			}(i, j)
-		}
-		nodePool.Put(f.nodes[i])
-		wg.Wait()
-	}
-	flowPool.Put(f)
-	f.isNew = false
-}
-
 func say(msg interface{}, level string) {
-	if SilentMode {
+	if Silent {
 		return
 	}
 	fmt.Printf("%s %s: %v\n", "flow", level, msg)
-}
-
-func getNode() *node {
-	return nodePool.Get().(*node).reset()
-}
-
-func getFlow() *Flow {
-	return flowPool.Get().(*Flow).reset()
-}
-
-func newNode() *node {
-	return new(node)
-}
-
-func newFlow() *Flow {
-	return new(Flow)
 }
