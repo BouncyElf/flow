@@ -14,10 +14,7 @@ func Example() {
 		counter++
 		fmt.Println("level", counter)
 	}
-	// Next start a new level, and put the func `showLevel` in this level
-	// the first level will be created by Flow
-	// so you can also use With to add showLevel in the first level
-	// f.With(showLevel)
+	// Next starts a new level, and put the job `showLevel` in it
 	f.Next(showLevel)
 	for i := 0; i < 20; i++ {
 		v := i
