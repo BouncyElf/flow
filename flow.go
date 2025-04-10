@@ -17,6 +17,7 @@ var defaultPanicHandler = func(msg interface{}) {
 // Flow is a sync model
 type Flow struct {
 	jobs         [][]func()
+	job_count    int
 	panicHandler func(interface{})
 
 	// concurrent limit number
@@ -35,12 +36,19 @@ func New() *Flow {
 	}
 }
 
+func NewWithLimit(limit int) *Flow {
+	f := New()
+	f.SetLimit(limit)
+	return f
+}
+
 // SetLimit set the max concurrent goroutines number
-func (f *Flow) SetLimit(limit int) {
+func (f *Flow) SetLimit(limit int) *Flow {
 	if limit < 1 {
 		limit = 1
 	}
 	f.limit = limit
+	return f
 }
 
 // With add funcs in this level
@@ -51,6 +59,7 @@ func (f *Flow) With(jobs ...func()) *Flow {
 	}
 	n := len(f.jobs)
 	f.jobs[n-1] = append(f.jobs[n-1], jobs...)
+	f.job_count += len(jobs)
 	return f
 }
 
@@ -58,6 +67,7 @@ func (f *Flow) With(jobs ...func()) *Flow {
 // Next: wait level1(run f1, run f2, run f3...) ... wait level2(...)... (in order)
 func (f *Flow) Next(jobs ...func()) *Flow {
 	f.jobs = append(f.jobs, jobs)
+	f.job_count += len(jobs)
 	return f
 }
 
@@ -65,7 +75,12 @@ func (f *Flow) Next(jobs ...func()) *Flow {
 func (f *Flow) Run() {
 	f.runOnce.Do(func() {
 		taskCh := make(chan func())
-		for range make([]any, f.limit) {
+		// use min(limit, job_count) to prevent idle worker
+		worker_number := f.limit
+		if f.job_count < worker_number {
+			worker_number = f.job_count
+		}
+		for range make([]any, worker_number) {
 			go func(taskCh chan func()) {
 				for job := range taskCh {
 					if job == nil {
