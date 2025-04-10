@@ -47,7 +47,7 @@ func (f *Flow) SetLimit(limit int) {
 // With: run f1, run f2, run f3 ... (random execute order)
 func (f *Flow) With(jobs ...func()) *Flow {
 	if len(f.jobs) == 0 {
-		f.jobs = [][]func(){[]func(){}}
+		f.jobs = make([][]func(), 1)
 	}
 	n := len(f.jobs)
 	f.jobs[n-1] = append(f.jobs[n-1], jobs...)
