@@ -74,6 +74,9 @@ func (f *Flow) Next(jobs ...func()) *Flow {
 // Run execute these funcs
 func (f *Flow) Run() {
 	f.runOnce.Do(func() {
+		if f.job_count == 0 {
+			return
+		}
 		taskCh := make(chan func())
 		// use min(limit, job_count) to prevent idle worker
 		worker_number := f.limit

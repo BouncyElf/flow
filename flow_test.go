@@ -97,6 +97,11 @@ func TestConcurrent(t *testing.T) {
 	assert.True(t, a < 10000)
 }
 
+func TestEmptyJob(t *testing.T) {
+	reset()
+	New().Run()
+}
+
 func TestOrder(t *testing.T) {
 	reset()
 	data := make([]int, 0, 20)
