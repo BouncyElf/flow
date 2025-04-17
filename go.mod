@@ -1,6 +1,9 @@
 module github.com/BouncyElf/flow
 
-require github.com/stretchr/testify v1.3.0
+require (
+	github.com/panjf2000/ants v1.3.0
+	github.com/stretchr/testify v1.3.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect

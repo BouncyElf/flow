@@ -3,10 +3,52 @@ package flow
 import (
 	"fmt"
 	"sync"
+
+	"github.com/panjf2000/ants"
 )
 
 // Silent disable all error message
 var Silent = false
+
+// ants pool (global)
+var (
+	poolSize   = 100
+	globalPool *ants.Pool
+	once       sync.Once
+)
+
+func init() {
+	initGlobalPool()
+}
+
+// initGlobalPool initializes the global ants pool
+func initGlobalPool() {
+	once.Do(func() {
+		p, err := ants.NewPool(poolSize)
+		if err != nil {
+			panic(fmt.Sprintf("failed to create global ants pool: %v", err))
+		}
+		globalPool = p
+	})
+}
+
+// SetGlobalPoolSize sets global ants pool size (must be called before any task runs)
+func SetGlobalPoolSize(size int) error {
+	if size < 1 {
+		size = 1
+	}
+	poolSize = size
+	if globalPool != nil {
+		globalPool.Release()
+		globalPool = nil
+	}
+	p, err := ants.NewPool(poolSize)
+	if err != nil {
+		return err
+	}
+	globalPool = p
+	return nil
+}
 
 // globalLimit limit all flow's concurrent work number.
 // <= 0 means no limits.
@@ -74,45 +116,33 @@ func (f *Flow) Next(jobs ...func()) *Flow {
 // Run execute these funcs
 func (f *Flow) Run() {
 	f.runOnce.Do(func() {
-		if f.job_count == 0 {
+		if f.job_count == 0 || len(f.jobs) == 0 {
 			return
 		}
-		taskCh := make(chan func())
-		// use min(limit, job_count) to prevent idle worker
-		worker_number := f.limit
-		if f.job_count < worker_number {
-			worker_number = f.job_count
-		}
-		for range make([]any, worker_number) {
-			go func(taskCh chan func()) {
-				for job := range taskCh {
-					if job == nil {
-						taskCh <- nil
-						return
-					}
-					job()
-				}
-			}(taskCh)
-		}
+
 		for _, jobs := range f.jobs {
 			wg := new(sync.WaitGroup)
+
+			sem := make(chan struct{}, f.limit) // Per-level concurrency limit
 			for _, job := range jobs {
 				j := job
 				wg.Add(1)
-				taskCh <- func() {
+
+				sem <- struct{}{} // block if over limit
+
+				_ = globalPool.Submit(func() {
 					defer func() {
 						if msg := recover(); msg != nil {
 							f.panicHandler(msg)
 						}
+						<-sem // release slot
 						wg.Done()
 					}()
-
 					j()
-				}
+				})
 			}
 			wg.Wait()
 		}
-		taskCh <- nil
 	})
 }
 
