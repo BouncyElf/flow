@@ -1,9 +1,11 @@
 # Flow
-🌊Flow is an easy-used concurrent calculate model in Go.
+🌊Flow is an easy-used concurrent calculation model to handle CPU-intensive jobs in Go.
 
-Flow can easily limit the maxium number of concurrent goroutine and can be very straight-forward to use.
+Flow can easily limit concurrent job count and can be very straight-forward to use.
 
-Basically, flow is a 2D matrix and it run jobs row-by-row which in same row, the jobs will run concurrently.
+Flow use [ants](https://github.com/panjf2000/ants) to reuse goroutine.
+
+Basically, flow is a 2D matrix and it run jobs row-by-row and in same row, the jobs will run concurrently.
 
 # Example
 ```Go

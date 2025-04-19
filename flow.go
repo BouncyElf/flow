@@ -2,6 +2,7 @@ package flow
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 
 	"github.com/panjf2000/ants"
@@ -12,13 +13,17 @@ var Silent = false
 
 // ants pool (global)
 var (
-	poolSize   = 100
-	globalPool *ants.Pool
-	once       sync.Once
+	poolSize     = 100
+	globalPool   *ants.Pool
+	once         sync.Once
+	defaultLimit = runtime.NumCPU()
 )
 
 func init() {
 	initGlobalPool()
+	if defaultLimit < 1 {
+		defaultLimit = 1
+	}
 }
 
 // initGlobalPool initializes the global ants pool
@@ -73,7 +78,7 @@ func New() *Flow {
 	return &Flow{
 		jobs:         [][]func(){},
 		panicHandler: defaultPanicHandler,
-		limit:        10,
+		limit:        defaultLimit,
 		runOnce:      new(sync.Once),
 	}
 }
