@@ -17,6 +17,12 @@ var (
 	once       sync.Once
 )
 
+type GroutinePool interface {
+	Submit(func()) error
+}
+
+type ErrorHandler func(error)
+
 func init() {
 	initGlobalPool()
 }
@@ -61,6 +67,9 @@ type Flow struct {
 	jobs         [][]func()
 	job_count    int
 	panicHandler func(interface{})
+	errorHandler ErrorHandler
+
+	p GroutinePool
 
 	// concurrent limit number
 	limit int
@@ -78,9 +87,27 @@ func New() *Flow {
 	}
 }
 
+func NewWithPool(p GroutinePool) *Flow {
+	f := New()
+	f.SetGroutinePool(p)
+	return f
+}
+
 func NewWithLimit(limit int) *Flow {
 	f := New()
 	f.SetLimit(limit)
+	return f
+}
+
+func (f *Flow) SetErrorHandler(h ErrorHandler) *Flow {
+	f.errorHandler = h
+	return f
+}
+
+func (f *Flow) SetGroutinePool(p GroutinePool) *Flow {
+	if p != nil {
+		f.p = p
+	}
 	return f
 }
 
@@ -130,7 +157,11 @@ func (f *Flow) Run() {
 
 				sem <- struct{}{} // block if over limit
 
-				_ = globalPool.Submit(func() {
+				p := f.p
+				if p == nil {
+					p = globalPool
+				}
+				err := p.Submit(func() {
 					defer func() {
 						if msg := recover(); msg != nil {
 							f.panicHandler(msg)
@@ -140,6 +171,9 @@ func (f *Flow) Run() {
 					}()
 					j()
 				})
+				if err != nil && f.errorHandler != nil {
+					f.errorHandler(err)
+				}
 			}
 			wg.Wait()
 		}
