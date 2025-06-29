@@ -54,3 +54,6 @@ func main() {
 
 # Doc
 [GoDoc](https://godoc.org/github.com/BouncyElf/flow)
+
+# LICENSE
+MIT LICENSE Copyright (c) 2025 BouncyElf
