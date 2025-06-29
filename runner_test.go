@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type mockPool struct {
@@ -84,4 +86,34 @@ func TestRunner_Add_PanicInFunc(t *testing.T) {
 		t.Fatalf("unexpected error %v", err)
 	}
 	r.Wait()
+}
+
+func TestRunnerWithMultipleEntry(t *testing.T) {
+	r, err := NewRunnerWithAntsPool(4)
+	assert.Nil(t, err)
+	assert.NotNil(t, r)
+
+	var count int32
+
+	f := func() {
+		atomic.AddInt32(&count, 1)
+	}
+
+	for range make([]struct{}, 10) {
+		r.Add(f)
+	}
+	r.Wait()
+	assert.Equal(t, count, int32(10))
+
+	for range make([]struct{}, 10) {
+		r.Add(f)
+	}
+	r.Wait()
+	assert.Equal(t, count, int32(20))
+
+	for range make([]struct{}, 10) {
+		r.Add(f)
+	}
+	r.Wait()
+	assert.Equal(t, count, int32(30))
 }

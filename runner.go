@@ -3,6 +3,8 @@ package flow
 import (
 	"errors"
 	"sync"
+
+	"github.com/panjf2000/ants"
 )
 
 type PanicHandler func(interface{})
@@ -18,6 +20,14 @@ var (
 )
 
 type RunnerOptions func(*Runner)
+
+func NewRunnerWithAntsPool(size int, ro ...RunnerOptions) (*Runner, error) {
+	p, err := ants.NewPool(size)
+	if err != nil {
+		return nil, err
+	}
+	return NewRunner(p, ro...), nil
+}
 
 func NewRunner(p GroutinePool, ro ...RunnerOptions) *Runner {
 	if p == nil {
