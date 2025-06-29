@@ -9,6 +9,7 @@ import (
 
 type PanicHandler func(interface{})
 
+// Runner allows you run the functions while adding it into runner.
 type Runner struct {
 	p  GroutinePool
 	wg *sync.WaitGroup
@@ -49,6 +50,7 @@ func WithPanicHandler(ph PanicHandler) RunnerOptions {
 	}
 }
 
+// `Add` add the f into the pool and the pool will run f
 func (r *Runner) Add(f func()) error {
 	if r == nil || r.p == nil {
 		return ErrInvalidRunner
@@ -74,6 +76,7 @@ func (r *Runner) Add(f func()) error {
 	return nil
 }
 
+// `Wait` waits all the functions inside the pool execute finished.
 func (r *Runner) Wait() {
 	if r == nil || r.wg == nil {
 		return

@@ -19,7 +19,10 @@ var (
 	defaultLimit = runtime.NumCPU()
 )
 
+// GoroutinePool is the goroutine pool where you want to execute your job
 type GroutinePool interface {
+	// Submit add the function into the pool.
+	// it should ALWAYS returns an error when it fail to add the function into the pool.
 	Submit(func()) error
 }
 
